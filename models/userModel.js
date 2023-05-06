@@ -10,12 +10,14 @@ const userSchema = mongoose.Schema(
       min: 3,
       max: 20,
       unique: true,
+      lowercase: true,
     },
     email: {
       type: String,
       required: [true, "User must have a email"],
       max: 50,
       unique: true,
+      lowercase: true,
       validate: [validator.isEmail, "Please provide a valid email"],
     },
     password: {
@@ -39,6 +41,9 @@ const userSchema = mongoose.Schema(
         message: "Passwords do not match",
       },
     },
+
+    passwordChangedAt: Date,
+
     profilePicture: {
       type: String,
       default: "",
@@ -62,19 +67,37 @@ const userSchema = mongoose.Schema(
     isActive: {
       type: Boolean,
       default: true,
+      select: false,
     },
   },
   {
     timestamps: true,
+  },
+  {
+    toJSON: { virtuals: true },
+    toObject: { virtuals: true },
   }
 );
 
+// middlewares.
 userSchema.pre("save", async function (next) {
   if (!this.isModified("password")) return next();
   this.password = await bcrypt.hash(this.password, 10);
   this.passwordConfirm = undefined;
 });
 
+userSchema.pre("save", function (next) {
+  if (!this.isModified("password") || this.isNew) return next();
+  this.passwordChangedAt = Date.now() - 1000;
+  next();
+});
+
+userSchema.pre(/^find/, function (next) {
+  this.find({ isActive: { $ne: false } });
+  next();
+});
+
+// Methods.
 userSchema.methods.checkingHashedPassword = async function (
   importedPass,
   userDBPass
@@ -82,5 +105,18 @@ userSchema.methods.checkingHashedPassword = async function (
   return await bcrypt.compare(importedPass, userDBPass);
 };
 
+userSchema.methods.changedPasswordAfter = function (JWTTimestamp) {
+  if (this.passwordChangedAt) {
+    const changedTimestamp = parseInt(
+      this.passwordChangedAt.getTime() / 1000,
+      10
+    );
+    return JWTTimestamp < changedTimestamp;
+  }
+  // False means NOT changed
+  return false;
+};
+
+// Exporting User collection.
 const User = mongoose.model("User", userSchema);
 module.exports = User;

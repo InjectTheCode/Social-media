@@ -38,14 +38,14 @@ exports.login = catchAsync(async (req, res, next) => {
     return next(new AppError("Please provide email and password.", 400));
   }
   const user = await User.findOne({ email }).select("+password");
-  if (!user || !user.checkingHashedPassword(password, user.password)) {
+  if (!user || !(await user.checkingHashedPassword(password, user.password))) {
     return next(new AppError("Incorrect email or password.", 401));
   }
   createSendToken(user, 200, res);
 });
 
 exports.protect = catchAsync(async (req, res, next) => {
-  const { authorization } = req.body;
+  const { authorization } = req.headers;
   let token;
   if (authorization) {
     token = authorization.includes("Bearer")
@@ -59,6 +59,46 @@ exports.protect = catchAsync(async (req, res, next) => {
   }
 
   const decoded = jwt.verify(token, process.env.JWT_SECRET);
+
+  const currentUser = await User.findById(decoded.id);
+  if (!currentUser) {
+    return next(
+      new AppError(
+        "The user belonging to this token does no longer exist,",
+        401
+      )
+    );
+  }
+  if (currentUser.changedPasswordAfter(decoded.iat)) {
+    return next(
+      new AppError("User recently changed password! Please log in again.", 401)
+    );
+  }
+  req.user = currentUser;
+  next();
+});
+
+exports.updateMyPassword = catchAsync(async (req, res, next) => {
+  const user = await User.findById(req.user.id).select("+password");
+  if (
+    !(await user.checkingHashedPassword(
+      req.body.passwordCurrent,
+      user.password
+    ))
+  ) {
+    return next(new AppError("Your current password is wrong", 401));
+  }
+  user.password = req.body.password;
+  user.passwordConfirm = req.body.passwordConfirm;
+  await user.save();
+  const token = signToken(user.id);
+  res.status(201).json({
+    status: "success",
+    token,
+    data: {
+      user,
+    },
+  });
 });
 
 exports.getAll = catchAsync(async (req, res, next) => {
