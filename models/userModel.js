@@ -44,14 +44,6 @@ const userSchema = mongoose.Schema(
 
     passwordChangedAt: Date,
 
-    profilePicture: {
-      type: String,
-      default: "",
-    },
-    coverPicture: {
-      type: String,
-      default: "",
-    },
     follewers: {
       type: Array,
       default: [],
@@ -71,13 +63,17 @@ const userSchema = mongoose.Schema(
     },
   },
   {
-    timestamps: true,
-  },
-  {
     toJSON: { virtuals: true },
     toObject: { virtuals: true },
+    timestamps: true,
   }
 );
+
+userSchema.virtual("information", {
+  ref: "UserDesc",
+  foreignField: "user",
+  localField: "_id",
+});
 
 // middlewares.
 userSchema.pre("save", async function (next) {
@@ -98,19 +94,13 @@ userSchema.pre(/^find/, function (next) {
 });
 
 // Methods.
-userSchema.methods.checkingHashedPassword = async function (
-  importedPass,
-  userDBPass
-) {
+userSchema.methods.checkingHashedPassword = async function (importedPass, userDBPass) {
   return await bcrypt.compare(importedPass, userDBPass);
 };
 
 userSchema.methods.changedPasswordAfter = function (JWTTimestamp) {
   if (this.passwordChangedAt) {
-    const changedTimestamp = parseInt(
-      this.passwordChangedAt.getTime() / 1000,
-      10
-    );
+    const changedTimestamp = parseInt(this.passwordChangedAt.getTime() / 1000, 10);
     return JWTTimestamp < changedTimestamp;
   }
   // False means NOT changed

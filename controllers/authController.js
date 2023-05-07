@@ -53,9 +53,7 @@ exports.protect = catchAsync(async (req, res, next) => {
       : authorization;
   }
   if (!token) {
-    return next(
-      new AppError("You are not logged in, Please log in to get access", 401)
-    );
+    return next(new AppError("You are not logged in, Please log in to get access", 401));
   }
 
   const decoded = jwt.verify(token, process.env.JWT_SECRET);
@@ -63,10 +61,7 @@ exports.protect = catchAsync(async (req, res, next) => {
   const currentUser = await User.findById(decoded.id);
   if (!currentUser) {
     return next(
-      new AppError(
-        "The user belonging to this token does no longer exist,",
-        401
-      )
+      new AppError("The user belonging to this token does no longer exist,", 401)
     );
   }
   if (currentUser.changedPasswordAfter(decoded.iat)) {
@@ -80,12 +75,7 @@ exports.protect = catchAsync(async (req, res, next) => {
 
 exports.updateMyPassword = catchAsync(async (req, res, next) => {
   const user = await User.findById(req.user.id).select("+password");
-  if (
-    !(await user.checkingHashedPassword(
-      req.body.passwordCurrent,
-      user.password
-    ))
-  ) {
+  if (!(await user.checkingHashedPassword(req.body.passwordCurrent, user.password))) {
     return next(new AppError("Your current password is wrong", 401));
   }
   user.password = req.body.password;
@@ -98,12 +88,5 @@ exports.updateMyPassword = catchAsync(async (req, res, next) => {
     data: {
       user,
     },
-  });
-});
-
-exports.getAll = catchAsync(async (req, res, next) => {
-  const allusers = await User.find();
-  res.status(200).json({
-    data: allusers,
   });
 });

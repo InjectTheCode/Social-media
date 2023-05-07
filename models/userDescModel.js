@@ -24,6 +24,14 @@ const userDescModel = mongoose.Schema(
     work: {
       type: String,
     },
+    profilePicture: {
+      type: String,
+      default: "",
+    },
+    coverPicture: {
+      type: String,
+      default: "",
+    },
     user: {
       type: mongoose.Schema.ObjectId,
       ref: "User",
