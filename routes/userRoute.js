@@ -7,6 +7,7 @@ router.route("/").get(authMiddleware.protect, userController.getAllUser);
 
 router.patch("/update-me", authMiddleware.protect, userDescController.updateUserDesc);
 router.patch("/follow", authMiddleware.protect, userController.followUser);
+router.patch("/unfollow", authMiddleware.protect, userController.unFollowUser);
 
 router.post("/add-user-desc", authMiddleware.protect, userDescController.createUserDesc);
 
