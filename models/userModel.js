@@ -44,11 +44,11 @@ const userSchema = mongoose.Schema(
 
     passwordChangedAt: Date,
 
-    follewers: {
+    followers: {
       type: Array,
       default: [],
     },
-    follewings: {
+    followings: {
       type: Array,
       default: [],
     },
@@ -88,10 +88,10 @@ userSchema.pre("save", function (next) {
   next();
 });
 
-userSchema.pre(/^find/, function (next) {
-  this.find({ isActive: { $ne: false } });
-  next();
-});
+// userSchema.pre(/^find/, function (next) {
+//   this.find({ isActive: { $ne: false } });
+//   next();
+// });
 
 // Methods.
 userSchema.methods.checkingHashedPassword = async function (importedPass, userDBPass) {

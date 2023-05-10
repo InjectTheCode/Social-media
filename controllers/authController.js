@@ -44,35 +44,6 @@ exports.login = catchAsync(async (req, res, next) => {
   createSendToken(user, 200, res);
 });
 
-exports.protect = catchAsync(async (req, res, next) => {
-  const { authorization } = req.headers;
-  let token;
-  if (authorization) {
-    token = authorization.includes("Bearer")
-      ? authorization.split(" ")[1]
-      : authorization;
-  }
-  if (!token) {
-    return next(new AppError("You are not logged in, Please log in to get access", 401));
-  }
-
-  const decoded = jwt.verify(token, process.env.JWT_SECRET);
-
-  const currentUser = await User.findById(decoded.id);
-  if (!currentUser) {
-    return next(
-      new AppError("The user belonging to this token does no longer exist,", 401)
-    );
-  }
-  if (currentUser.changedPasswordAfter(decoded.iat)) {
-    return next(
-      new AppError("User recently changed password! Please log in again.", 401)
-    );
-  }
-  req.user = currentUser;
-  next();
-});
-
 exports.updateMyPassword = catchAsync(async (req, res, next) => {
   const user = await User.findById(req.user.id).select("+password");
   if (!(await user.checkingHashedPassword(req.body.passwordCurrent, user.password))) {
@@ -88,5 +59,35 @@ exports.updateMyPassword = catchAsync(async (req, res, next) => {
     data: {
       user,
     },
+  });
+});
+
+// this is for Admin, it can see both active and inactive users.
+exports.getAllDeActivatedUser = catchAsync(async (req, res, next) => {
+  let findObjSitusation = {};
+  req.query.isActive
+    ? (findObjSitusation["isActive"] = req.query.isActive)
+    : (findObjSitusation = {});
+
+  const users = await User.find(findObjSitusation);
+  if (users.length <= 0) {
+    return next(new AppError("There is no user to show", 404));
+  }
+  res.status(201).json({
+    status: "success",
+    length: users.length,
+    data: {
+      users,
+    },
+  });
+});
+
+exports.fullyDeleteUser = catchAsync(async (req, res, next) => {
+  if (!req.body.id) return next(new AppError("You need to provide user's ID."));
+  const user = await User.findOneAndDelete({ _id: req.body.id });
+  if (!user) return next(new AppError("No user was found with this ID."));
+  res.status(200).json({
+    status: "success",
+    data: null,
   });
 });

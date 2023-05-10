@@ -1,6 +1,14 @@
 const UserDesc = require("../models/userDescModel");
 const catchAsync = require("../utils/catchAsync");
 
+const filteredObj = (obj, ...allowedFields) => {
+  const newObj = {};
+  Object.keys(obj).forEach((el) => {
+    if (allowedFields.includes(el)) newObj[el] = obj[el];
+  });
+  return newObj;
+};
+
 exports.createUserDesc = catchAsync(async (req, res, next) => {
   const userDesc = await UserDesc.create({ user: req.user.id, ...req.body });
   res.status(201).json({

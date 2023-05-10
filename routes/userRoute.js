@@ -1,22 +1,15 @@
 const router = require("express").Router();
-const authController = require("../controllers/authController");
+const authMiddleware = require("../middlewares/authMiddleware");
 const userController = require("../controllers/userController");
 const userDescController = require("../controllers/userDescController");
 
-router.route("/signup").get(authController.signUp);
-router.route("/login").post(authController.login);
+router.route("/").get(authMiddleware.protect, userController.getAllUser);
 
-router.route("/").get(authController.protect, userController.getAllUser);
+router.patch("/update-me", authMiddleware.protect, userDescController.updateUserDesc);
+router.patch("/follow", authMiddleware.protect, userController.followUser);
 
-router.patch(
-  "/update-my-password",
-  authController.protect,
-  authController.updateMyPassword
-);
-router.patch("/update-me", authController.protect, userDescController.updateUserDesc);
+router.post("/add-user-desc", authMiddleware.protect, userDescController.createUserDesc);
 
-router.post("/add-user-desc", authController.protect, userDescController.createUserDesc);
-
-router.delete("/delete-me", authController.protect, userController.deleteMe);
+router.delete("/deactivate-me", authMiddleware.protect, userController.deleteMe);
 
 module.exports = router;

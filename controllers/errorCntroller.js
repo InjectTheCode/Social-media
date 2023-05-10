@@ -42,15 +42,15 @@ module.exports = (err, req, res, next) => {
   if (process.env.NODE_ENV === "development") {
     devErrorHandler(err, res);
   } else if (process.env.NODE_ENV === "production") {
-    let error = { ...err };
+    // let error = { ...err };
 
     if (err.name === "ValidationError") {
-      error = handleValidationErrorDB(error);
+      err = handleValidationErrorDB(err);
     }
     if (err.code === 11000) {
-      error = handleDuplicateErrorDB(error);
+      err = handleDuplicateErrorDB(err);
     }
 
-    prodErrorHandler(error, res);
+    prodErrorHandler(err, res);
   }
 };
